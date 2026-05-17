@@ -15,5 +15,3 @@ src/
 links.txt
 .DS_Store
 *.tmp
-gen.sh
-links.txt
