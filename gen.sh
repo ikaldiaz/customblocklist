@@ -1,41 +1,31 @@
 #!/bin/bash
 
 # Configuration
-INPUT_FILE="links.txt"
+INPUT_FILE="active_links.txt"
 OUTPUT_FILE="hosts"
 GITHUB_USER="ikaldiaz"
 REPO_NAME="customblocklist"
+BRANCH_NAME="main"
 
-# Check if input file exists
 if [ ! -f "$INPUT_FILE" ]; then
-    echo "Error: Input file '$INPUT_FILE' not found!"
+    echo "Error: '$INPUT_FILE' not found! Run ./check-links.sh first."
     exit 1
 fi
 
-echo "Processing domains..."
+echo "Generating blocklist from active links..."
 
-# 1. Clean and extract unique domains
-# - Removes 'http://', 'https://', 'www.', and trailing paths/slashes
-# - Removes empty lines and lines starting with '#'
-# - Sorts and filters for unique domains
+# Extract unique domains from the active list
 TEMPORARY_DOMAINS=$(awk '{
-    # Remove protocol
     gsub(/^https?:\/\//, "");
-    # Remove www. prefix if present (optional, standard for dns blocklists)
     gsub(/^www\./, "");
-    # Remove paths, queries, or ports (everything after the first / or :)
     split($0, a, "[\/:]");
     print a[1];
-}' "$INPUT_FILE" | grep -v '^$' | grep -v '^#' | sort -u)
+}' "$INPUT_FILE" | grep -v '^$' | sort -u)
 
-# Count unique domains
 DOMAIN_COUNT=$(echo "$TEMPORARY_DOMAINS" | wc -l)
-# Format the current date exactly like your example
 CURRENT_DATE=$(date -u +"%d %b %Y %H:%M:%S (UTC) (generated)")
 
-echo "Found $DOMAIN_COUNT unique domains. Generating header..."
-
-# 2. Write the header to the output file
+# Write the header
 cat << EOF > "$OUTPUT_FILE"
 # Title: Custom Ikal BlockList
 #
@@ -45,12 +35,16 @@ cat << EOF > "$OUTPUT_FILE"
 # Date: $CURRENT_DATE
 # Number of unique domains: $(printf "%'d" $DOMAIN_COUNT)
 #
-# Fetch the latest version of this file: https://raw.githubusercontent.com/$GITHUB_USER/$REPO_NAME/master/hosts
+# Fetch the latest version of this file: https://raw.githubusercontent.com/$GITHUB_USER/$REPO_NAME/$BRANCH_NAME/hosts
 # Project home page: https://github.com/$GITHUB_USER/$REPO_NAME
 
 EOF
 
-# 3. Append the domains prefixed with 0.0.0.0
+# Append the domains
 echo "$TEMPORARY_DOMAINS" | awk '{print "0.0.0.0 " $1}' >> "$OUTPUT_FILE"
 
-echo "Done! Blocklist saved to '$OUTPUT_FILE'."
+echo "Done! Blocklist updated with $DOMAIN_COUNT active domains."
+
+git add .
+git commit -m "Update blocklist domains"
+git push
