@@ -12,5 +12,6 @@
 
 pkg/
 src/
+links.txt
 .DS_Store
 *.tmp
